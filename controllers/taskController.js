@@ -46,7 +46,7 @@ taskController.deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
         const task = await taskServices.deleteTask({ id });
-        res.status(200).json({ message: "Task deleted successfully", data: task });
+        res.status(200).json({ message: "Task deleted successfully"});
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
@@ -54,7 +54,7 @@ taskController.deleteTask = async (req, res) => {
 
 taskController.getTasksByStatus = async (req, res) => {
     try {
-        const { status } = req.query;
+        const { status } = req.params;
         const tasks = await taskServices.getTasksByStatus({ status });
         res.status(200).json({ message: "Tasks fetched successfully", total: tasks.length, data: tasks });
     } catch (error) {

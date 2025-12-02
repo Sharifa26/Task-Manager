@@ -3,51 +3,71 @@ const tasks = require('../models/task');
 
 const taskServices = {};
 
-taskServices.getAllTasks = () => {
-    return tasks.find();
+taskServices.getAllTasks = async() => {
+    return await tasks.find();
 };
 
-taskServices.getTaskById = (id) => {
-    return tasks.findById(id);
+taskServices.getTaskById = async(id) => {
+    return await tasks.findById(id);
 };
 
-taskServices.createTask = (body) => {
+taskServices.createTask = async(body) => {
     const { title, description, deadline } = body;
-    return tasks.create({
+    return await tasks.create({
         title: title.trim(),
         description: description.trim(),
         deadline: new Date(deadline),
     });
 };
 
-taskServices.updateTask = (id, data) => {
+taskServices.updateTask = async(id, data) => {
     const { title, description, status, deadline } = data;
-    const tasks = tasks.findById(id);
+    const task = await tasks.findById(id);
 
-    title = title !== undefined ? title.trim() : tasks.title;
-    description = description !== undefined ? description.trim() : tasks.description;
-    status = status !== undefined ? status : tasks.status;
-    deadline = deadline !== undefined ? new Date(deadline) : tasks.deadline;
+    title = title !== undefined ? title.trim() : task.title;
+    description = description !== undefined ? description.trim() : task.description;
+    status = status !== undefined ? status : task.status;
+    deadline = deadline !== undefined ? new Date(deadline) : task.deadline;
 
-    return tasks.findByIdAndUpdate({ _id: id }, {
+    return await tasks.findByIdAndUpdate(id, {
         title: title,
         description: description,
+        status: status,
         deadline: deadline
     });
 };
 
-taskServices.deleteTask = ({ id }) => {
-    return tasks.findByIdAndDelete(id);
+taskServices.deleteTask = async({ id }) => {
+    return await tasks.findByIdAndDelete(id);
 };
 
-taskServices.getTasksByStatus = ({ status }) => {
-    return tasks.find({ status });
+taskServices.getTasksByStatus = async({ status }) => {
+    return await tasks.find({ status: status });
 };
 
-taskServices.getDeadline = (id) => {
-    const task = tasks.findById(id);
+taskServices.getDeadline = async(id) => {
+    const task = await tasks.findById(id);
 
-    const balance = task.deadline.getTime() - Date.now();
+    if (!task) {
+        throw new Error("Task not found");
+    }
+
+    if (!task.deadline) {
+        throw new Error("Deadline not set for this task");
+    }
+    let balance;
+    const deadline = new Date(task.deadline).getTime(); // Deadline timestamp
+    const now = new Date().getTime();                  // Current timestamp
+
+    const diff = deadline - now; 
+
+    if (diff > 0) {
+        const hoursLeft = Math.floor(diff / (1000 * 60 * 60)); 
+        balance = hoursLeft + ' hours left';
+    } else {
+        balance = 'Deadline has passed';
+    }
+    
     return balance;
 };
 
