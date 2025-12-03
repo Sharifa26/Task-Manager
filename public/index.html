@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); min-height: 100vh; padding: 20px; }
+    
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    header h1 { font-size: 24px; color: #1a1a2e; display: flex; align-items: center; gap: 10px; }
+    header h1::before { content: "📋"; }
+    header p { color: #666; font-size: 14px; }
+    
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); }
+    .btn-danger { background: #ef4444; color: white; padding: 6px 12px; font-size: 12px; }
+    .btn-success { background: #10b981; color: white; padding: 6px 12px; font-size: 12px; }
+    
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .stat-card { padding: 20px; border-radius: 12px; color: white; }
+    .stat-card.total { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .stat-card.pending { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+    .stat-card.progress { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+    .stat-card.completed { background: linear-gradient(135deg, #10b981, #34d399); }
+    .stat-card h3 { font-size: 28px; }
+    .stat-card p { opacity: 0.9; font-size: 14px; }
+    
+    .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-btn { padding: 8px 16px; border: 2px solid #e5e7eb; background: white; border-radius: 20px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .filter-btn:hover, .filter-btn.active { border-color: #6366f1; color: #6366f1; }
+    
+    .tasks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    
+    .task-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 4px solid #6366f1; transition: all 0.3s; }
+    .task-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .task-card.pending { border-left-color: #f59e0b; }
+    .task-card.in-progress { border-left-color: #3b82f6; }
+    .task-card.completed { border-left-color: #10b981; opacity: 0.7; }
+    .task-card.completed .task-title { text-decoration: line-through; color: #9ca3af; }
+    .task-card.cancelled { border-left-color: #ef4444; opacity: 0.6; }
+    .task-card.cancelled .task-title { text-decoration: line-through; color: #9ca3af; }
+    
+    .task-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+    .task-title { font-size: 18px; font-weight: 600; color: #1a1a2e; }
+    .task-desc { color: #666; font-size: 14px; margin-bottom: 15px; line-height: 1.5; }
+    
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-badge.pending { background: #fef3c7; color: #d97706; }
+    .status-badge.in-progress { background: #dbeafe; color: #2563eb; }
+    .status-badge.completed { background: #d1fae5; color: #059669; }
+    .status-badge.cancelled { background: #fee2e2; color: #dc2626; }
+    
+    .deadline { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 15px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; }
+    .deadline.overdue { background: #fee2e2; color: #dc2626; animation: pulse 2s infinite; }
+    .deadline.urgent { background: #fef3c7; color: #d97706; }
+    
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    
+    .task-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 15px; border-top: 1px solid #f1f5f9; }
+    
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 450px; animation: slideIn 0.3s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal h2 { margin-bottom: 20px; color: #1a1a2e; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #374151; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #6366f1; }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    
+    .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+    .empty-state h3 { font-size: 20px; margin-bottom: 10px; color: #1a1a2e; }
+    
+    .loading { text-align: center; padding: 40px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Task Manager</h1>
+        <p>Stay organized, stay productive</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">+ New Task</button>
+    </header>
+
+    <div class="stats">
+      <div class="stat-card total"><h3 id="total-count">0</h3><p>Total Tasks</p></div>
+      <div class="stat-card pending"><h3 id="pending-count">0</h3><p>Pending</p></div>
+      <div class="stat-card progress"><h3 id="progress-count">0</h3><p>In Progress</p></div>
+      <div class="stat-card completed"><h3 id="completed-count">0</h3><p>Completed</p></div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="pending">🕐 Pending</button>
+      <button class="filter-btn" data-filter="in-progress">🔄 In Progress</button>
+      <button class="filter-btn" data-filter="completed">✅ Completed</button>
+      <button class="filter-btn" data-filter="cancelled">❌ Cancelled</button>
+    </div>
+
+    <div id="tasks-container" class="tasks-grid"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h2 id="modal-title">Create New Task</h2>
+      <form id="task-form">
+        <input type="hidden" id="task-id">
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="title" required placeholder="Enter task title...">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="description" required placeholder="Enter task description..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Deadline</label>
+          <input type="datetime-local" id="deadline" required>
+        </div>
+        <div class="form-group" id="status-group" style="display: none;">
+          <label>Status</label>
+          <select id="status">
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api/tasks';
+    let tasks = [];
+    let currentFilter = 'all';
+
+    // Fetch all tasks
+    async function fetchTasks() {
+      try {
+        const res = await fetch(API_BASE);
+        const data = await res.json();
+        tasks = data.data || [];
+        renderTasks();
+        updateStats();
+      } catch (err) {
+        document.getElementById('tasks-container').innerHTML = '<div class="empty-state"><h3>Error loading tasks</h3><p>Make sure your backend is running</p></div>';
+      }
+    }
+
+    // Render tasks
+    function renderTasks() {
+      const container = document.getElementById('tasks-container');
+      const filtered = currentFilter === 'all' ? tasks : tasks.filter(t => t.status === currentFilter);
+      
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No tasks found</h3><p>Create your first task to get started!</p></div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(task => `
+        <div class="task-card ${task.status}">
+          <div class="task-header">
+            <span class="task-title">${task.title}</span>
+            <span class="status-badge ${task.status}">${formatStatus(task.status)}</span>
+          </div>
+          <p class="task-desc">${task.description}</p>
+          <div class="deadline ${getDeadlineClass(task.deadline, task.status)}" id="deadline-${task._id}">
+            ⏰ <span>${getTimeLeft(task.deadline)}</span>
+          </div>
+          <div class="task-actions">
+            ${task.status !== 'completed' && task.status !== 'cancelled' ? 
+              `<button class="btn btn-success" onclick="markComplete('${task._id}')">✓ Complete</button>` : ''}
+            <button class="btn" style="background:#f1f5f9" onclick="editTask('${task._id}')">Edit</button>
+            <button class="btn btn-danger" onclick="deleteTask('${task._id}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Update stats
+    function updateStats() {
+      document.getElementById('total-count').textContent = tasks.length;
+      document.getElementById('pending-count').textContent = tasks.filter(t => t.status === 'pending').length;
+      document.getElementById('progress-count').textContent = tasks.filter(t => t.status === 'in-progress').length;
+      document.getElementById('completed-count').textContent = tasks.filter(t => t.status === 'completed').length;
+    }
+
+    // Get time left
+    function getTimeLeft(deadline) {
+      const diff = new Date(deadline).getTime() - Date.now();
+      if (diff <= 0) return '⚠️ Overdue';
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      if (days > 0) return `${days}d ${hours}h left`;
+      if (hours > 0) return `${hours}h ${mins}m left`;
+      return `${mins}m left`;
+    }
+
+    function getDeadlineClass(deadline, status) {
+      if (status === 'completed' || status === 'cancelled') return '';
+      const diff = new Date(deadline).getTime() - Date.now();
+      if (diff <= 0) return 'overdue';
+      if (diff < 1000 * 60 * 60 * 24) return 'urgent';
+      return '';
+    }
+
+    function formatStatus(status) {
+      return status.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    // Modal functions
+    function openModal(task = null) {
+      document.getElementById('modal').classList.add('active');
+      document.getElementById('modal-title').textContent = task ? 'Edit Task' : 'Create New Task';
+      document.getElementById('status-group').style.display = task ? 'block' : 'none';
+      
+      if (task) {
+        document.getElementById('task-id').value = task._id;
+        document.getElementById('title').value = task.title;
+        document.getElementById('description').value = task.description;
+        document.getElementById('deadline').value = new Date(task.deadline).toISOString().slice(0, 16);
+        document.getElementById('status').value = task.status;
+      } else {
+        document.getElementById('task-form').reset();
+        document.getElementById('task-id').value = '';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+
+    function editTask(id) {
+      const task = tasks.find(t => t._id === id);
+      if (task) openModal(task);
+    }
+
+    // Form submit
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('task-id').value;
+      const body = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        deadline: document.getElementById('deadline').value,
+        ...(id && { status: document.getElementById('status').value })
+      };
+
+      try {
+        await fetch(id ? `${API_BASE}/${id}` : API_BASE, {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        closeModal();
+        fetchTasks();
+      } catch (err) {
+        alert('Error saving task');
+      }
+    });
+
+    // Delete task
+    async function deleteTask(id) {
+      if (!confirm('Delete this task?')) return;
+      await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      fetchTasks();
+    }
+
+    // Mark complete
+    async function markComplete(id) {
+      await fetch(`${API_BASE}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
+      fetchTasks();
+    }
+
+    // Filters
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderTasks();
+      });
+    });
+
+    // Real-time deadline update
+    setInterval(() => {
+      tasks.forEach(task => {
+        const el = document.getElementById(`deadline-${task._id}`);
+        if (el) {
+          el.querySelector('span').textContent = getTimeLeft(task.deadline);
+          el.className = `deadline ${getDeadlineClass(task.deadline, task.status)}`;
+        }
+      });
+    }, 1000);
+
+    // Init
+    fetchTasks();
+  </script>
+</body>
+</html>

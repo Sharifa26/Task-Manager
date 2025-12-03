@@ -18,6 +18,10 @@ app.get('/health', (req, res) => {
   res.send('OK');
 });
 
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
+});
+
 
 // MongoDB Connection
 connectDB().then(() => {
